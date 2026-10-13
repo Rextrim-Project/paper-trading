@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { formatRupiah, formatPercent } from '../lib/trading/engine'
 
 export default function Dashboard() {
@@ -19,77 +17,74 @@ export default function Dashboard() {
   }, [])
 
   if (loading) {
-    return <div className="p-8">Loading dashboard...</div>
+    return (
+      <div className="p-8 flex items-center justify-center h-full">
+        <div className="text-gray-500">Memuat dashboard...</div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">AI Crypto Paper Trading</h1>
-            <p className="text-gray-600 mt-1">Dashboard Analitik Performa Trading</p>
-          </div>
-          <div className="flex gap-2">
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${stats?.mode === 'DEMO' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}`}>
-              {stats?.mode} MODE
-            </span>
+    <div className="p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-gray-500 text-sm mt-1">Ringkasan performa trading otomatis</p>
+      </div>
+
+      {/* Stat Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <StatCard
+          label="Total Dialokasikan"
+          value={formatRupiah(stats?.totalAllocated || 0)}
+          icon="💵"
+          color="blue"
+        />
+        <StatCard
+          label="Modal Digunakan"
+          value={formatRupiah(stats?.usedCapital || 0)}
+          icon="🏦"
+          color="indigo"
+        />
+        <StatCard
+          label="Realized P&L"
+          value={formatRupiah(stats?.realizedPnl || 0)}
+          icon="📊"
+          color="emerald"
+          positive={(stats?.realizedPnl || 0) >= 0}
+        />
+        <StatCard
+          label="Win Rate"
+          value={`${(stats?.winRate || 0).toFixed(1)}%`}
+          icon="🎯"
+          color="amber"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        <StatCardMini label="Take Profit" value={`${stats?.tpCount || 0}`} color="emerald" />
+        <StatCardMini label="Stop Loss" value={`${stats?.slCount || 0}`} color="red" />
+        <StatCardMini label="Timeout 24h" value={`${stats?.timeoutCount || 0}`} color="gray" />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Sistem</h3>
+          <div className="space-y-3">
+            <StatusRow label="Mode Operasi" value={stats?.mode || 'DEMO'} badgeColor="bg-yellow-100 text-yellow-800" />
+            <StatusRow label="Auto Trading" value={stats?.settings?.isAutoTradingEnabled ? 'Aktif' : 'Nonaktif'} badgeColor={stats?.settings?.isAutoTradingEnabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'} />
+            <StatusRow label="Target TP" value={`+${stats?.settings?.takeProfitPercent || 20}%`} badgeColor="bg-emerald-100 text-emerald-800" />
+            <StatusRow label="Batas SL" value={`${stats?.settings?.stopLossPercent || -10}%`} badgeColor="bg-red-100 text-red-800" />
+            <StatusRow label="Modal per Trade" value={formatRupiah(stats?.settings?.capitalPerTrade || 1000000)} badgeColor="bg-blue-100 text-blue-800" />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-6">
-          <StatCard label="Total Dialokasikan" value={formatRupiah(stats?.totalAllocated || 0)} />
-          <StatCard label="Modal Digunakan" value={formatRupiah(stats?.usedCapital || 0)} />
-          <StatCard label="Realized P&L" value={formatRupiah(stats?.realizedPnl || 0)} positive={(stats?.realizedPnl || 0) >= 0} />
-          <StatCard label="Total Transaksi" value={`${stats?.totalTrades || 0}`} />
-          <StatCard label="Posisi Aktif" value={`${stats?.openPositions || 0}`} />
-          <StatCard label="Win Rate" value={`${(stats?.winRate || 0).toFixed(1)}%`} />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <StatCard label="Take Profit" value={`${stats?.tpCount || 0}`} labelColor="text-green-600" />
-          <StatCard label="Stop Loss" value={`${stats?.slCount || 0}`} labelColor="text-red-600" />
-          <StatCard label="Timeout 24h" value={`${stats?.timeoutCount || 0}`} labelColor="text-gray-600" />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/positions" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                Posisi Aktif
-              </Link>
-              <Link href="/history" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                Riwayat Trading
-              </Link>
-              <Link href="/settings" className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">
-                Pengaturan
-              </Link>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h2 className="text-lg font-semibold mb-4">Status Sistem</h2>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Auto Trading</span>
-                <span className={stats?.settings?.isAutoTradingEnabled ? 'text-green-600' : 'text-gray-500'}>
-                  {stats?.settings?.isAutoTradingEnabled ? 'Aktif' : 'Nonaktif'}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">TP Target</span>
-                <span>+{stats?.settings?.takeProfitPercent || 20}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">SL Batas</span>
-                <span>{stats?.settings?.stopLossPercent || -10}%</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Modal per Trade</span>
-                <span>{formatRupiah(stats?.settings?.capitalPerTrade || 1000000)}</span>
-              </div>
-            </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Ringkasan Trading</h3>
+          <div className="grid grid-cols-2 gap-4">
+            <SummaryItem label="Total Transaksi" value={`${stats?.totalTrades || 0}`} />
+            <SummaryItem label="Posisi Aktif" value={`${stats?.openPositions || 0}`} />
+            <SummaryItem label="Trade Profit" value={`${stats?.winningTrades || 0}`} />
+            <SummaryItem label="Trade Loss" value={`${stats?.losingTrades || 0}`} />
           </div>
         </div>
       </div>
@@ -97,12 +92,56 @@ export default function Dashboard() {
   )
 }
 
-function StatCard({ label, value, positive, labelColor }: { label: string; value: string; positive?: boolean; labelColor?: string }) {
-  const valueColor = positive === true ? 'text-green-600' : positive === false ? 'text-red-600' : 'text-gray-900'
+function StatCard({ label, value, icon, color, positive }: { label: string; value: string; icon: string; color: string; positive?: boolean }) {
+  const colorClasses: Record<string, string> = {
+    blue: 'from-blue-50 to-blue-100 border-blue-200',
+    indigo: 'from-indigo-50 to-indigo-100 border-indigo-200',
+    emerald: 'from-emerald-50 to-emerald-100 border-emerald-200',
+    amber: 'from-amber-50 to-amber-100 border-amber-200',
+  }
+
   return (
-    <div className="bg-white p-4 rounded-xl shadow-sm">
-      <p className={`text-xs font-medium ${labelColor || 'text-gray-500'} mb-1`}>{label}</p>
-      <p className={`text-lg font-bold ${valueColor}`}>{value}</p>
+    <div className={`bg-gradient-to-br ${colorClasses[color]} rounded-xl border p-5`}>
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-2xl">{icon}</span>
+        <span className={`text-xs font-medium px-2 py-1 rounded-full ${positive === true ? 'bg-green-200 text-green-800' : positive === false ? 'bg-red-200 text-red-800' : 'bg-white/60 text-gray-600'}`}>
+          {positive === true ? '+' : positive === false ? '' : ''}
+        </span>
+      </div>
+      <p className="text-xs text-gray-600 font-medium mb-1">{label}</p>
+      <p className={`text-xl font-bold ${positive === true ? 'text-green-700' : positive === false ? 'text-red-700' : 'text-gray-900'}`}>{value}</p>
+    </div>
+  )
+}
+
+function StatCardMini({ label, value, color }: { label: string; value: string; color: string }) {
+  const colorClasses: Record<string, string> = {
+    emerald: 'bg-emerald-50 border-emerald-200',
+    red: 'bg-red-50 border-red-200',
+    gray: 'bg-gray-50 border-gray-200',
+  }
+  return (
+    <div className={`${colorClasses[color]} rounded-xl border p-4 flex items-center justify-between`}>
+      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="text-lg font-bold text-gray-900">{value}</p>
+    </div>
+  )
+}
+
+function StatusRow({ label, value, badgeColor }: { label: string; value: string; badgeColor: string }) {
+  return (
+    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+      <span className="text-sm text-gray-600">{label}</span>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${badgeColor}`}>{value}</span>
+    </div>
+  )
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="p-3 bg-gray-50 rounded-lg">
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-lg font-bold text-gray-900">{value}</p>
     </div>
   )
 }
