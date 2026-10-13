@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AppSettings {
+  id                     String   @id @default("default")
+  isDemoMode             Boolean  @default(true)
+  isAutoTradingEnabled   Boolean  @default(false)
+  capitalPerTrade       Decimal  @default(1000000) // Rp1,000,000
+  takeProfitPercent     Decimal  @default(20.0)    // +20%
+  stopLossPercent       Decimal  @default(-10.0)   // -10%
+  positionTimeoutHours  Decimal  @default(24.0)    // 24 jam
+  maxDailyPositions     Int      @default(5)
+  maxVirtualCapital     Decimal  @default(100000000) // Rp100M
+  transactionFeePercent Decimal  @default(0.1)     // 0.1%
+  slippagePercent       Decimal  @default(0.05)    // 0.05%
+  priceMonitorInterval  Int      @default(60)      // 60 detik
+  recommendationCron    String   @default("0 9 * * *") // Setiap hari jam 9 pagi WIB
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
+
+model TradingCycle {
+  id                String   @id @default(cuid())
+  cycleDate         DateTime @unique
+  status            String   @default("PENDING") // PENDING, RUNNING, COMPLETED, FAILED
+  recommendationsFound Int   @default(0)
+  positionsOpened   Int      @default(0)
+  errorMessage      String?
+  startedAt         DateTime?
+  completedAt      DateTime?
+  createdAt         DateTime @default(now())
+}
+
+model CmcRecommendation {
+  id              String   @id @default(cuid())
+  source          String   // CMC_AI, DEMO
+  coinSymbol      String
+  coinName        String
+  currentPrice    Decimal
+  recommendation  String   // BUY, HOLD, SELL
+  confidence      Decimal
+  reasoning       String?
+  outlook         String?
+  fetchedAt       DateTime @default(now())
+  isProcessed     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  positions       PaperPosition[]
+}
+
+model MarketPrice {
+  id              String   @id @default(cuid())
+  coinSymbol      String
+  price           Decimal
+  timestamp       DateTime @default(now())
+  source          String
+}
+
+model PaperPosition {
+  id              String   @id @default(cuid())
+  coinSymbol      String
+  coinName        String
+  entryPrice      Decimal
+  quantity        Decimal
+  capitalUsed     Decimal
+  takeProfitPrice Decimal
+  stopLossPrice   Decimal
+  status          String   @default("OPEN") // OPEN, CLOSING, CLOSED_TAKE_PROFIT, CLOSED_STOP_LOSS, CLOSED_TIMEOUT
+  openedAt        DateTime @default(now())
+  expiresAt       DateTime
+  recommendationId String?
+  entryPriceSnapshotId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  recommendation  CmcRecommendation? @relation(fields: [recommendationId], references: [id])
+  tradeExecution  TradeExecution?
+}
+
+model TradeExecution {
+  id              String   @id @default(cuid())
+  positionId      String   @unique
+  coinSymbol      String
+  entryPrice      Decimal
+  exitPrice       Decimal
+  quantity        Decimal
+  capitalUsed     Decimal
+  totalFees       Decimal
+  grossPnl        Decimal
+  netPnl          Decimal
+  returnPercent   Decimal
+  durationMinutes Int
+  closedReason    String   // TAKE_PROFIT, STOP_LOSS, TIMEOUT_24H, MANUAL
+  closedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+
+  position        PaperPosition @relation(fields: [positionId], references: [id])
+}
+
+model DailyReport {
+  id                String   @id @default(cuid())
+  reportDate        DateTime @unique
+  recommendations   Int      @default(0)
+  positionsOpened   Int      @default(0)
+  positionsClosed   Int      @default(0)
+  tpCount           Int      @default(0)
+  slCount           Int      @default(0)
+  timeoutCount      Int      @default(0)
+  totalProfit       Decimal  @default(0)
+  totalLoss         Decimal  @default(0)
+  dailyNetPnl       Decimal  @default(0)
+  cumulativePnl     Decimal  @default(0)
+  cumulativeReturn  Decimal  @default(0)
+  winRate           Decimal  @default(0)
+  avgProfit         Decimal  @default(0)
+  avgLoss           Decimal  @default(0)
+  openPositions     Int      @default(0)
+  unrealizedPnl     Decimal  @default(0)
+  createdAt         DateTime @default(now())
+}
+
+model ApiLog {
+  id              String   @id @default(cuid())
+  apiName         String
+  endpoint        String
+  statusCode      Int?
+  errorMessage    String?
+  responseTime    Int?
+  createdAt       DateTime @default(now())
+}
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  action          String
+  oldValue        String?
+  newValue        String?
+  createdAt       DateTime @default(now())
+}
